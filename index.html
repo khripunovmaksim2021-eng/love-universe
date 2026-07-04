@@ -590,10 +590,63 @@
         }
     </script>
 
+    <!-- ===== ПОДКЛЮЧАЕМ SOCKET.IO ДЛЯ СИНХРОНИЗАЦИИ ===== -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        // ================================================================
+        // 0. ПОДКЛЮЧЕНИЕ К СЕРВЕРУ (СИНХРОНИЗАЦИЯ)
+        // ================================================================
+        const socket = io();
+
+        socket.on('connect', () => {
+            console.log('✅ Подключено к серверу!');
+        });
+
+        // Получение всех воспоминаний при загрузке
+        socket.on('sync_all', (memoriesData) => {
+            console.log('📥 Загружено воспоминаний с сервера:', memoriesData.length);
+            // Очищаем локальные воспоминания
+            while (memoryGroup.children.length > 0) {
+                const child = memoryGroup.children[0];
+                memoryGroup.remove(child);
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) child.material.dispose();
+            }
+            memories = [];
+            memoriesData.forEach(data => {
+                createMemoryHeart(data);
+            });
+            document.getElementById('memory-count').textContent = memories.length;
+        });
+
+        // Новое воспоминание от другого пользователя
+        socket.on('new_memory', (data) => {
+            console.log('✨ Новое воспоминание от другого пользователя:', data.title);
+            createMemoryHeart(data);
+            createParticleExplosion(0, 0, 0, 30);
+            pulseHeart();
+        });
+
+        // Обновление воспоминания
+        socket.on('update_memory', (data) => {
+            console.log('📝 Обновлено воспоминание:', data.id);
+            updateMemoryLocal(data);
+        });
+
+        // Удаление воспоминания
+        socket.on('delete_memory', (data) => {
+            console.log('🗑️ Удалено воспоминание:', data.id);
+            deleteMemoryLocal(data.id);
+        });
+
+        socket.on('disconnect', () => {
+            console.log('❌ Отключено от сервера');
+        });
 
         // ================================================================
         // 1. НАСТРОЙКИ СЦЕНЫ
@@ -717,25 +770,26 @@
             heart.rotation.x = -0.2;
             heart.position.y = -0.1;
 
-            const glowGeometry = new THREE.SphereGeometry(1.5, 32, 32);
-            const glowMaterial = new THREE.MeshBasicMaterial({
-                color: 0xff2d8a,
-                transparent: true,
-                opacity: 0.1,
-                wireframe: true,
-            });
-            const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-            glow.scale.set(1.5, 1.5, 1);
+            // СФЕРЫ ЗАКОММЕНТИРОВАНЫ (как ты и хотел)
+            // const glowGeometry = new THREE.SphereGeometry(1.5, 32, 32);
+            // const glowMaterial = new THREE.MeshBasicMaterial({
+            //     color: 0xff2d8a,
+            //     transparent: true,
+            //     opacity: 0.1,
+            //     wireframe: true,
+            // });
+            // const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+            // glow.scale.set(1.5, 1.5, 1);
 
-            const auraGeometry = new THREE.SphereGeometry(2.0, 32, 32);
-            const auraMaterial = new THREE.MeshBasicMaterial({
-                color: 0xff4d9a,
-                transparent: true,
-                opacity: 0.04,
-                wireframe: true,
-            });
-            const aura = new THREE.Mesh(auraGeometry, auraMaterial);
-            aura.scale.set(1.8, 1.8, 1);
+            // const auraGeometry = new THREE.SphereGeometry(2.0, 32, 32);
+            // const auraMaterial = new THREE.MeshBasicMaterial({
+            //     color: 0xff4d9a,
+            //     transparent: true,
+            //     opacity: 0.04,
+            //     wireframe: true,
+            // });
+            // const aura = new THREE.Mesh(auraGeometry, auraMaterial);
+            // aura.scale.set(1.8, 1.8, 1);
 
             group.add(heart);
             // group.add(glow);
@@ -754,7 +808,7 @@
         const memoryGroup = new THREE.Group();
         scene.add(memoryGroup);
 
-        const memories = [];
+        let memories = [];
         let memoryCounter = 0;
         let currentViewId = null;
         let isEditMode = false;
@@ -869,23 +923,42 @@
             return heart;
         }
 
+        // ================================================================
+        // 5. ФУНКЦИИ ДЛЯ РАБОТЫ С СЕРВЕРОМ
+        // ================================================================
+
+        // Добавление воспоминания (с отправкой на сервер)
         function addMemory(date, title, imageData) {
             const data = {
-                id: Date.now() + Math.random() * 1000,
                 date: date || new Date().toLocaleDateString(),
                 title: title || '💕',
                 imageData: imageData || null,
-                createdAt: Date.now(),
             };
 
-            const heart = createMemoryHeart(data);
-            memoryCounter++;
-            createParticleExplosion(0, 0, 0, 40);
-            pulseHeart();
-            return heart;
+            // Отправляем на сервер
+            fetch('/memories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(result => {
+                console.log('✅ Воспоминание сохранено на сервере:', result);
+                // Сервер сам разошлёт через WebSocket всем
+            })
+            .catch(err => {
+                console.error('❌ Ошибка сохранения:', err);
+                // Если сервер недоступен - сохраняем локально
+                const localData = { ...data, id: Date.now() };
+                createMemoryHeart(localData);
+                pulseHeart();
+            });
+
+            closeModal();
         }
 
-        function deleteMemory(id) {
+        // Локальное удаление
+        function deleteMemoryLocal(id) {
             const index = memories.findIndex(h => h.userData.id === id);
             if (index === -1) return;
 
@@ -909,14 +982,12 @@
             createParticleExplosion(0, 0, 0, 20);
         }
 
-        function editMemory(id, newText, newDate, newImage) {
-            const heart = memories.find(h => h.userData.id === id);
+        // Локальное обновление
+        function updateMemoryLocal(data) {
+            const heart = memories.find(h => h.userData.id === data.id);
             if (!heart) return;
 
-            const data = heart.userData.memoryData;
-            if (newText) data.title = newText;
-            if (newDate) data.date = newDate;
-            if (newImage) data.imageData = newImage;
+            heart.userData.memoryData = data;
 
             const label = heart.children.find(c => c.isCSS2DObject);
             if (label) {
@@ -953,8 +1024,51 @@
             pulseHeart();
         }
 
+        // Удаление с отправкой на сервер
+        function deleteMemory(id) {
+            if (!id) return;
+
+            fetch(`/memories/${id}`, { method: 'DELETE' })
+                .then(() => {
+                    console.log('✅ Воспоминание удалено на сервере');
+                })
+                .catch(err => {
+                    console.error('❌ Ошибка удаления:', err);
+                });
+
+            deleteMemoryLocal(id);
+        }
+
+        // Редактирование с отправкой на сервер
+        function editMemory(id, newText, newDate, newImage) {
+            const heart = memories.find(h => h.userData.id === id);
+            if (!heart) return;
+
+            const data = heart.userData.memoryData;
+            const updated = {
+                ...data,
+                title: newText || data.title,
+                date: newDate || data.date,
+                imageData: newImage || data.imageData,
+            };
+
+            fetch(`/memories/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updated)
+            })
+            .then(() => {
+                console.log('✅ Воспоминание обновлено на сервере');
+            })
+            .catch(err => {
+                console.error('❌ Ошибка обновления:', err);
+            });
+
+            updateMemoryLocal(updated);
+        }
+
         // ================================================================
-        // 5. ЭФФЕКТЫ
+        // 6. ЭФФЕКТЫ
         // ================================================================
 
         function pulseHeart() {
@@ -1055,7 +1169,7 @@
         }
 
         // ================================================================
-        // 6. ЗВЁЗДЫ
+        // 7. ЗВЁЗДЫ
         // ================================================================
         const starsGeometry = new THREE.BufferGeometry();
         const starsCount = 1000;
@@ -1093,7 +1207,7 @@
         scene.add(stars);
 
         // ================================================================
-        // 7. МОДАЛЬНЫЕ ОКНА
+        // 8. МОДАЛЬНЫЕ ОКНА
         // ================================================================
 
         // === МОДАЛКА СОЗДАНИЯ ===
@@ -1149,12 +1263,10 @@
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     addMemory(date, title, e.target.result);
-                    closeModal();
                 };
                 reader.readAsDataURL(file);
             } else {
                 addMemory(date, title, null);
-                closeModal();
             }
         });
 
@@ -1184,7 +1296,6 @@
             isEditMode = false;
             tempImageData = null;
 
-            // Заполняем данные
             viewDate.textContent = data.date || 'Без даты';
             viewDateInput.value = data.date || new Date().toISOString().split('T')[0];
             viewText.textContent = data.title || '💕';
@@ -1197,14 +1308,11 @@
                 viewImage.classList.remove('active');
             }
 
-            // Переключаем режим просмотра
             setViewMode();
-
             viewModal.classList.add('active');
         }
 
         function setViewMode() {
-            // Режим просмотра
             viewDate.style.display = 'block';
             viewDateInput.classList.remove('active');
             viewText.style.display = 'block';
@@ -1223,7 +1331,6 @@
         function setEditMode() {
             isEditMode = true;
             
-            // Режим редактирования
             viewDate.style.display = 'none';
             viewDateInput.classList.add('active');
             viewText.style.display = 'none';
@@ -1252,16 +1359,13 @@
             if (e.target === viewModal) closeViewModal();
         });
 
-        // === КНОПКА РЕДАКТИРОВАНИЯ ===
         viewEdit.addEventListener('click', () => {
             if (!currentViewId) return;
             setEditMode();
         });
 
-        // === КНОПКА ОТМЕНЫ ===
         viewCancel.addEventListener('click', () => {
             if (!currentViewId) return;
-            // Возвращаем данные без сохранения
             const heart = memories.find(h => h.userData.id === currentViewId);
             if (heart) {
                 const data = heart.userData.memoryData;
@@ -1279,7 +1383,6 @@
             setViewMode();
         });
 
-        // === КНОПКА СОХРАНЕНИЯ ===
         viewSave.addEventListener('click', () => {
             if (!currentViewId) return;
 
@@ -1291,7 +1394,6 @@
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     editMemory(currentViewId, title, date, e.target.result);
-                    // Обновляем отображение
                     const heart = memories.find(h => h.userData.id === currentViewId);
                     if (heart) {
                         const data = heart.userData.memoryData;
@@ -1303,11 +1405,11 @@
                         }
                     }
                     setViewMode();
+                    closeViewModal();
                 };
                 reader.readAsDataURL(file);
             } else {
                 editMemory(currentViewId, title, date, null);
-                // Обновляем отображение
                 const heart = memories.find(h => h.userData.id === currentViewId);
                 if (heart) {
                     const data = heart.userData.memoryData;
@@ -1319,10 +1421,10 @@
                     }
                 }
                 setViewMode();
+                closeViewModal();
             }
         });
 
-        // === КНОПКА УДАЛЕНИЯ ===
         viewDelete.addEventListener('click', () => {
             if (!currentViewId) return;
 
@@ -1332,7 +1434,6 @@
             }
         });
 
-        // === ПРЕВЬЮ ФОТО ПРИ РЕДАКТИРОВАНИИ ===
         viewPhotoInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -1347,12 +1448,14 @@
         });
 
         // ================================================================
-        // 8. КЛИК ПО СЕРДЕЧКАМ
+        // 9. КЛИК ПО СЕРДЕЧКАМ
         // ================================================================
         const raycaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
 
         function handleClick(clientX, clientY) {
+            if (viewModal.classList.contains('active')) return;
+
             const rect = renderer.domElement.getBoundingClientRect();
             pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
             pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
@@ -1384,24 +1487,27 @@
         }, { passive: true });
 
         // ================================================================
-        // 9. ДЕМО-ВОСПОМИНАНИЯ
+        // 10. ДЕМО-ВОСПОМИНАНИЯ (ТОЛЬКО ЕСЛИ НЕТ ДАННЫХ НА СЕРВЕРЕ)
         // ================================================================
         setTimeout(() => {
-            const demos = [
-                { date: '2024-01-14', title: '💕 Наша первая встреча' },
-                { date: '2024-02-14', title: '✨ День всех влюблённых' },
-                { date: '2024-03-08', title: '🌸 8 Марта — ты моя весна' },
-            ];
+            // Проверяем, есть ли уже воспоминания
+            if (memories.length === 0) {
+                const demos = [
+                    { date: '2024-01-14', title: '💕 Наша первая встреча' },
+                    { date: '2024-02-14', title: '✨ День всех влюблённых' },
+                    { date: '2024-03-08', title: '🌸 8 Марта — ты моя весна' },
+                ];
 
-            demos.forEach((demo, i) => {
-                setTimeout(() => {
-                    addMemory(demo.date, demo.title, null);
-                }, i * 500 + 300);
-            });
-        }, 500);
+                demos.forEach((demo, i) => {
+                    setTimeout(() => {
+                        addMemory(demo.date, demo.title, null);
+                    }, i * 500 + 300);
+                });
+            }
+        }, 1000);
 
         // ================================================================
-        // 10. АНИМАЦИЯ
+        // 11. АНИМАЦИЯ
         // ================================================================
         let time = 0;
 
@@ -1449,7 +1555,7 @@
         animate();
 
         // ================================================================
-        // 11. РЕСАЙЗ
+        // 12. РЕСАЙЗ
         // ================================================================
         window.addEventListener('resize', () => {
             const width = window.innerWidth;
@@ -1463,7 +1569,7 @@
         });
 
         // ================================================================
-        // 12. КОНСОЛЬ
+        // 13. КОНСОЛЬ
         // ================================================================
         window.addMemory = addMemory;
         window.deleteMemory = deleteMemory;
@@ -1477,6 +1583,7 @@
         console.log('✏️ Нажми "Редактировать" — текст станет editable прямо в окне!');
         console.log('💾 Нажми "Сохранить" — обновится');
         console.log('🔍 Мощный зум');
+        console.log('🔄 Воспоминания синхронизируются с сервером!');
     </script>
 </body>
 </html>
