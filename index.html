@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>💫 Вселенная Воспоминаний</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        body {
+            background: #0a0015;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            touch-action: none;
+        }
+
+        #create-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: rgba(255, 100, 200, 0.15);
+            border: 2px solid rgba(255, 100, 200, 0.3);
+            color: rgba(255, 200, 230, 0.8);
+            font-size: 26px;
+            cursor: pointer;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+            box-shadow: 0 0 30px rgba(255, 100, 200, 0.1);
+        }
+        #create-btn:hover {
+            background: rgba(255, 100, 200, 0.3);
+            border-color: rgba(255, 100, 200, 0.6);
+            transform: scale(1.1);
+            box-shadow: 0 0 40px rgba(255, 100, 200, 0.3);
+        }
+        #create-btn:active {
+            transform: scale(0.85);
+        }
+
+        #memory-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 0, 20, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            z-index: 200;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            animation: modalFade 0.4s ease;
+            padding: 20px;
+        }
+        #memory-modal.active {
+            display: flex;
+        }
+
+        @keyframes modalFade {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal-content {
+            background: linear-gradient(145deg, rgba(40, 15, 60, 0.95), rgba(20, 5, 40, 0.95));
+            border-radius: 24px;
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+            border: 1px solid rgba(255, 100, 200, 0.2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 80px rgba(255, 100, 200, 0.1);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-title {
+            color: rgba(255, 200, 230, 0.9);
+            font-size: 22px;
+            font-weight: 300;
+            text-align: center;
+            margin-bottom: 25px;
+            letter-spacing: 2px;
+            text-shadow: 0 0 30px rgba(255, 100, 200, 0.3);
+        }
+
+        .modal-group {
+            margin-bottom: 18px;
+        }
+
+        .modal-label {
+            color: rgba(255, 200, 230, 0.6);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 12px 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 100, 200, 0.2);
+            border-radius: 12px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        .modal-input:focus {
+            border-color: rgba(255, 100, 200, 0.6);
+            box-shadow: 0 0 20px rgba(255, 100, 200, 0.1);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .modal-input::placeholder {
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-file-input {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px dashed rgba(255, 100, 200, 0.3);
+            border-radius: 12px;
+            color: rgba(255, 200, 230, 0.5);
+            cursor: pointer;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 13px;
+        }
+        .modal-file-input::-webkit-file-upload-button {
+            background: rgba(255, 100, 200, 0.2);
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        .modal-file-input::-webkit-file-upload-button:hover {
+            background: rgba(255, 100, 200, 0.3);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 25px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            touch-action: manipulation;
+            letter-spacing: 1px;
+        }
+
+        .modal-btn-primary {
+            background: linear-gradient(135deg, #ff2d8a, #ff6b9d);
+            color: white;
+            box-shadow: 0 4px 20px rgba(255, 45, 138, 0.3);
+        }
+        .modal-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(255, 45, 138, 0.4);
+        }
+        .modal-btn-primary:active {
+            transform: scale(0.95);
+        }
+
+        .modal-btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .modal-btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        #preview-image {
+            max-width: 100%;
+            max-height: 120px;
+            border-radius: 12px;
+            margin-top: 10px;
+            display: none;
+            object-fit: cover;
+            border: 1px solid rgba(255, 100, 200, 0.2);
+        }
+
+        #hint {
+            position: fixed;
+            bottom: 100px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: rgba(255, 200, 230, 0.2);
+            font-size: 12px;
+            letter-spacing: 1px;
+            font-weight: 300;
+            pointer-events: none;
+            z-index: 1;
+            transition: opacity 3s;
+            text-shadow: 0 0 20px rgba(255, 100, 200, 0.1);
+        }
+
+        #counter {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            color: rgba(255, 200, 230, 0.4);
+            font-size: 14px;
+            font-weight: 300;
+            letter-spacing: 1px;
+            z-index: 50;
+            background: rgba(10, 0, 20, 0.5);
+            backdrop-filter: blur(10px);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 100, 200, 0.1);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            pointer-events: none;
+        }
+        #counter span {
+            color: rgba(255, 150, 200, 0.8);
+        }
+
+        /* Окно просмотра/редактирования (всё в одном) */
+        #view-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 0, 20, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            z-index: 300;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            animation: modalFade 0.4s ease;
+            padding: 20px;
+        }
+        #view-modal.active {
+            display: flex;
+        }
+
+        .view-content {
+            background: linear-gradient(145deg, rgba(40, 15, 60, 0.95), rgba(20, 5, 40, 0.95));
+            border-radius: 24px;
+            padding: 30px;
+            max-width: 450px;
+            width: 100%;
+            border: 1px solid rgba(255, 100, 200, 0.2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 80px rgba(255, 100, 200, 0.1);
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .view-title {
+            color: rgba(255, 200, 230, 0.9);
+            font-size: 20px;
+            font-weight: 300;
+            text-align: center;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+        }
+
+        .view-date {
+            color: rgba(255, 200, 230, 0.4);
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* Редактируемый текст */
+        .view-text {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 18px;
+            text-align: center;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 100, 200, 0.1);
+            min-height: 30px;
+            word-break: break-word;
+        }
+        .view-text.editable {
+            border-color: rgba(255, 200, 100, 0.5);
+            background: rgba(255, 200, 100, 0.05);
+            box-shadow: 0 0 30px rgba(255, 200, 100, 0.05);
+        }
+        .view-text-input {
+            width: 100%;
+            padding: 12px 14px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(255, 200, 100, 0.5);
+            border-radius: 12px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 18px;
+            outline: none;
+            box-sizing: border-box;
+            font-family: inherit;
+            text-align: center;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .view-text-input.active {
+            display: block;
+        }
+
+        .view-date-input {
+            width: 100%;
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 100, 200, 0.2);
+            border-radius: 12px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 15px;
+            outline: none;
+            box-sizing: border-box;
+            font-family: inherit;
+            text-align: center;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .view-date-input.active {
+            display: block;
+        }
+
+        .view-image {
+            width: 100%;
+            max-height: 250px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: none;
+            border: 1px solid rgba(255, 100, 200, 0.2);
+        }
+        .view-image.active {
+            display: block;
+        }
+
+        .view-photo-input {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px dashed rgba(255, 200, 100, 0.3);
+            border-radius: 12px;
+            color: rgba(255, 200, 230, 0.5);
+            cursor: pointer;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 13px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .view-photo-input.active {
+            display: block;
+        }
+        .view-photo-input::-webkit-file-upload-button {
+            background: rgba(255, 100, 200, 0.2);
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        .view-photo-input::-webkit-file-upload-button:hover {
+            background: rgba(255, 100, 200, 0.3);
+        }
+
+        .view-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .view-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            touch-action: manipulation;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-width: 80px;
+        }
+
+        .view-btn-edit {
+            background: linear-gradient(135deg, #ff8a2d, #ffb06b);
+            color: white;
+            box-shadow: 0 4px 20px rgba(255, 138, 45, 0.3);
+        }
+        .view-btn-edit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(255, 138, 45, 0.4);
+        }
+
+        .view-btn-save {
+            background: linear-gradient(135deg, #2dff8a, #6bffb0);
+            color: #0a0015;
+            box-shadow: 0 4px 20px rgba(45, 255, 138, 0.3);
+            display: none;
+        }
+        .view-btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(45, 255, 138, 0.4);
+        }
+        .view-btn-save.active {
+            display: flex;
+        }
+
+        .view-btn-close {
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .view-btn-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .view-btn-delete {
+            background: rgba(255, 50, 50, 0.2);
+            color: rgba(255, 100, 100, 0.7);
+            border: 1px solid rgba(255, 50, 50, 0.2);
+        }
+        .view-btn-delete:hover {
+            background: rgba(255, 50, 50, 0.3);
+        }
+
+        .view-btn-cancel {
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+        }
+        .view-btn-cancel.active {
+            display: flex;
+        }
+
+        @media (max-width: 600px) {
+            .modal-content,
+            .view-content {
+                padding: 20px;
+                margin: 10px;
+            }
+            #create-btn {
+                bottom: 20px;
+                right: 20px;
+                width: 50px;
+                height: 50px;
+                font-size: 22px;
+            }
+            #hint {
+                bottom: 80px;
+                font-size: 10px;
+            }
+            #counter {
+                top: 20px;
+                right: 20px;
+                font-size: 11px;
+                padding: 6px 12px;
+            }
+            .view-text {
+                font-size: 16px;
+            }
+            .view-actions {
+                gap: 8px;
+            }
+            .view-btn {
+                padding: 12px;
+                font-size: 13px;
+                min-width: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <button id="create-btn" title="Добавить воспоминание">+</button>
+
+    <div id="counter">💕 <span id="memory-count">0</span> воспоминаний</div>
+    <div id="hint">✨ коснись сердечка, чтобы открыть воспоминание ✨</div>
+
+    <!-- Модалка СОЗДАНИЯ -->
+    <div id="memory-modal">
+        <div class="modal-content">
+            <div class="modal-title">💫 Новое Воспоминание</div>
+
+            <div class="modal-group">
+                <span class="modal-label">📅 Дата</span>
+                <input type="date" id="memory-date" class="modal-input" value="">
+            </div>
+
+            <div class="modal-group">
+                <span class="modal-label">💭 Текст</span>
+                <input type="text" id="memory-title" class="modal-input" placeholder="Например: Наш первый поцелуй..." maxlength="50">
+            </div>
+
+            <div class="modal-group">
+                <span class="modal-label">🖼️ Фото (опционально)</span>
+                <input type="file" id="memory-photo" class="modal-file-input" accept="image/*">
+                <img id="preview-image" alt="Preview">
+            </div>
+
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-secondary" id="modal-cancel">Отмена</button>
+                <button class="modal-btn modal-btn-primary" id="modal-save">Сохранить 💕</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Окно ПРОСМОТРА И РЕДАКТИРОВАНИЯ (всё в одном) -->
+    <div id="view-modal">
+        <div class="view-content">
+            <div class="view-title" id="view-title">💕 Воспоминание</div>
+            
+            <div class="view-date" id="view-date"></div>
+            <input type="date" class="view-date-input" id="view-date-input">
+            
+            <div class="view-text" id="view-text"></div>
+            <input type="text" class="view-text-input" id="view-text-input" maxlength="50" placeholder="Введите текст...">
+            
+            <img class="view-image" id="view-image" alt="Фото">
+            <input type="file" class="view-photo-input" id="view-photo-input" accept="image/*">
+            
+            <div class="view-actions">
+                <button class="view-btn view-btn-edit" id="view-edit">✏️ Редактировать</button>
+                <button class="view-btn view-btn-save" id="view-save">💾 Сохранить</button>
+                <button class="view-btn view-btn-cancel" id="view-cancel">Отмена</button>
+                <button class="view-btn view-btn-delete" id="view-delete">🗑️ Удалить</button>
+                <button class="view-btn view-btn-close" id="view-close">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        // ================================================================
+        // 1. НАСТРОЙКИ СЦЕНЫ
+        // ================================================================
+        const container = document.getElementById('canvas-container');
+
+        const renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            alpha: true,
+            powerPreference: "high-performance"
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        container.appendChild(labelRenderer.domElement);
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0015);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 2, 8);
+        camera.lookAt(0, 0, 0);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.autoRotate = false;
+        controls.enableZoom = true;
+        controls.zoomSpeed = 1.5;
+        controls.rotateSpeed = 0.5;
+        controls.maxPolarAngle = Math.PI / 2.2;
+        controls.minPolarAngle = Math.PI / 4;
+        controls.target.set(0, 0, 0);
+        controls.enablePan = false;
+        controls.minDistance = 0.8;
+        controls.maxDistance = 30;
+
+        if ('ontouchstart' in window) {
+            controls.enableZoom = true;
+            controls.rotateSpeed = 0.3;
+            controls.zoomSpeed = 2.0;
+        }
+
+        // ================================================================
+        // 2. ОСВЕЩЕНИЕ
+        // ================================================================
+        const ambientLight = new THREE.AmbientLight(0x1a0a2e, 0.5);
+        scene.add(ambientLight);
+
+        const mainLight = new THREE.DirectionalLight(0xff6b9d, 2);
+        mainLight.position.set(3, 5, 5);
+        mainLight.castShadow = true;
+        scene.add(mainLight);
+
+        const backLight = new THREE.DirectionalLight(0x6b3fa0, 1);
+        backLight.position.set(-3, -2, -5);
+        scene.add(backLight);
+
+        const rimLight = new THREE.DirectionalLight(0xff9bcb, 1);
+        rimLight.position.set(-2, 3, 4);
+        scene.add(rimLight);
+
+        const pointLight = new THREE.PointLight(0xff2d8a, 0.5, 10);
+        pointLight.position.set(0, 0, 0);
+        scene.add(pointLight);
+
+        // ================================================================
+        // 3. ЦЕНТРАЛЬНОЕ СЕРДЦЕ
+        // ================================================================
+        function createCentralHeart() {
+            const group = new THREE.Group();
+
+            const heartShape = new THREE.Shape();
+            const x = 0,
+                y = 0;
+            const s = 1.2;
+
+            heartShape.moveTo(x, y + s * 0.3);
+            heartShape.bezierCurveTo(x + s * 1.0, y + s * 0.8, x + s * 1.2, y - s * 0.4, x, y - s * 0.8);
+            heartShape.bezierCurveTo(x - s * 1.2, y - s * 0.4, x - s * 1.0, y + s * 0.8, x, y + s * 0.3);
+
+            const extrudeSettings = {
+                depth: 0.4,
+                bevelEnabled: true,
+                bevelSegments: 8,
+                steps: 2,
+                bevelSize: 0.15,
+                bevelThickness: 0.15,
+            };
+
+            const geometry = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
+            geometry.center();
+
+            const material = new THREE.MeshPhysicalMaterial({
+                color: 0xff2d8a,
+                metalness: 0.2,
+                roughness: 0.3,
+                emissive: 0xff0d6a,
+                emissiveIntensity: 0.4,
+                clearcoat: 0.4,
+                clearcoatRoughness: 0.3,
+                transparent: true,
+                opacity: 0.95,
+                envMapIntensity: 1.0,
+            });
+
+            const heart = new THREE.Mesh(geometry, material);
+            heart.castShadow = true;
+            heart.receiveShadow = true;
+            heart.scale.set(0.9, 0.9, 0.9);
+            heart.rotation.x = -0.2;
+            heart.position.y = -0.1;
+
+            const glowGeometry = new THREE.SphereGeometry(1.5, 32, 32);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: 0xff2d8a,
+                transparent: true,
+                opacity: 0.1,
+                wireframe: true,
+            });
+            const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+            glow.scale.set(1.5, 1.5, 1);
+
+            const auraGeometry = new THREE.SphereGeometry(2.0, 32, 32);
+            const auraMaterial = new THREE.MeshBasicMaterial({
+                color: 0xff4d9a,
+                transparent: true,
+                opacity: 0.04,
+                wireframe: true,
+            });
+            const aura = new THREE.Mesh(auraGeometry, auraMaterial);
+            aura.scale.set(1.8, 1.8, 1);
+
+            group.add(heart);
+            // group.add(glow);
+            // group.add(aura);
+
+            return group;
+        }
+
+        const centralHeart = createCentralHeart();
+        centralHeart.position.set(0, 0, 0);
+        scene.add(centralHeart);
+
+        // ================================================================
+        // 4. СИСТЕМА ОРБИТ И ВОСПОМИНАНИЙ
+        // ================================================================
+        const memoryGroup = new THREE.Group();
+        scene.add(memoryGroup);
+
+        const memories = [];
+        let memoryCounter = 0;
+        let currentViewId = null;
+        let isEditMode = false;
+
+        const colors = [
+            0xff2d8a, 0xff4d9a, 0xff6baa, 0xff8aba,
+            0xff4d6d, 0xff6d8d, 0xff8dad, 0xffadcd,
+            0xff2d6a, 0xff4d8a, 0xff6daa, 0xff8dca,
+            0xdd2d8a, 0xdd4d9a, 0xdd6baa, 0xdd8aba,
+        ];
+
+        function getRandomColor() {
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        function createMiniHeart(color = 0xff2d8a, size = 0.15) {
+            const shape = new THREE.Shape();
+            const s = size;
+            shape.moveTo(0, s * 0.3);
+            shape.bezierCurveTo(s * 1.0, s * 0.8, s * 1.2, -s * 0.4, 0, -s * 0.8);
+            shape.bezierCurveTo(-s * 1.2, -s * 0.4, -s * 1.0, s * 0.8, 0, s * 0.3);
+
+            const geometry = new THREE.ShapeGeometry(shape);
+            const material = new THREE.MeshPhysicalMaterial({
+                color: color,
+                metalness: 0.1,
+                roughness: 0.4,
+                emissive: color,
+                emissiveIntensity: 0.3,
+                transparent: true,
+                opacity: 0.95,
+                side: THREE.DoubleSide,
+            });
+
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.castShadow = true;
+            return mesh;
+        }
+
+        function createMemoryHeart(data) {
+            const color = getRandomColor();
+            const radius = 1.8 + Math.random() * 2.2;
+            const angle = Math.random() * Math.PI * 2;
+            const yOffset = (Math.random() - 0.5) * 0.8;
+
+            const heart = createMiniHeart(color, 0.12);
+
+            heart.position.x = Math.cos(angle) * radius;
+            heart.position.z = Math.sin(angle) * radius;
+            heart.position.y = yOffset;
+
+            const scale = 0.8 + Math.random() * 0.4;
+            heart.scale.set(scale, scale, scale);
+
+            heart.userData = {
+                angle: angle,
+                radius: radius,
+                yOffset: yOffset,
+                rotationSpeedX: (Math.random() - 0.5) * 0.03,
+                rotationSpeedY: (Math.random() - 0.5) * 0.03,
+                rotationSpeedZ: (Math.random() - 0.5) * 0.03,
+                isMemory: true,
+                memoryData: data,
+                id: data.id || Date.now() + Math.random(),
+            };
+
+            const labelDiv = document.createElement('div');
+            labelDiv.textContent = data.date || '💕';
+            labelDiv.style.color = 'rgba(255, 200, 230, 0.7)';
+            labelDiv.style.fontSize = '11px';
+            labelDiv.style.fontWeight = '300';
+            labelDiv.style.textShadow = '0 0 20px rgba(255,100,200,0.5)';
+            labelDiv.style.background = 'rgba(10,0,20,0.3)';
+            labelDiv.style.backdropFilter = 'blur(8px)';
+            labelDiv.style.padding = '3px 8px';
+            labelDiv.style.borderRadius = '12px';
+            labelDiv.style.border = '1px solid rgba(255,100,200,0.15)';
+            labelDiv.style.pointerEvents = 'none';
+            labelDiv.style.fontFamily = 'Helvetica Neue, Arial, sans-serif';
+            labelDiv.style.letterSpacing = '0.5px';
+            labelDiv.style.whiteSpace = 'nowrap';
+
+            const label = new CSS2DObject(labelDiv);
+            label.position.set(0, 0.2, 0);
+            heart.add(label);
+
+            if (data.imageData) {
+                const img = new Image();
+                img.onload = function() {
+                    const texture = new THREE.Texture(img);
+                    texture.needsUpdate = true;
+
+                    const spriteMaterial = new THREE.SpriteMaterial({
+                        map: texture,
+                        transparent: true,
+                        opacity: 0.5,
+                        depthWrite: false,
+                    });
+                    const sprite = new THREE.Sprite(spriteMaterial);
+                    sprite.scale.set(0.25, 0.25, 1);
+                    sprite.position.set(0, -0.25, 0);
+                    heart.add(sprite);
+                };
+                img.src = data.imageData;
+            }
+
+            memoryGroup.add(heart);
+            memories.push(heart);
+
+            document.getElementById('memory-count').textContent = memories.length;
+
+            return heart;
+        }
+
+        function addMemory(date, title, imageData) {
+            const data = {
+                id: Date.now() + Math.random() * 1000,
+                date: date || new Date().toLocaleDateString(),
+                title: title || '💕',
+                imageData: imageData || null,
+                createdAt: Date.now(),
+            };
+
+            const heart = createMemoryHeart(data);
+            memoryCounter++;
+            createParticleExplosion(0, 0, 0, 40);
+            pulseHeart();
+            return heart;
+        }
+
+        function deleteMemory(id) {
+            const index = memories.findIndex(h => h.userData.id === id);
+            if (index === -1) return;
+
+            const heart = memories[index];
+            memoryGroup.remove(heart);
+
+            heart.children.forEach(child => {
+                if (child.isCSS2DObject) {
+                    child.element.remove();
+                }
+                if (child.isSprite) {
+                    child.material.map && child.material.map.dispose();
+                    child.material.dispose();
+                }
+            });
+            heart.geometry && heart.geometry.dispose();
+            heart.material && heart.material.dispose();
+
+            memories.splice(index, 1);
+            document.getElementById('memory-count').textContent = memories.length;
+            createParticleExplosion(0, 0, 0, 20);
+        }
+
+        function editMemory(id, newText, newDate, newImage) {
+            const heart = memories.find(h => h.userData.id === id);
+            if (!heart) return;
+
+            const data = heart.userData.memoryData;
+            if (newText) data.title = newText;
+            if (newDate) data.date = newDate;
+            if (newImage) data.imageData = newImage;
+
+            const label = heart.children.find(c => c.isCSS2DObject);
+            if (label) {
+                label.element.textContent = data.date || '💕';
+            }
+
+            const oldSprite = heart.children.find(c => c.isSprite);
+            if (oldSprite) {
+                heart.remove(oldSprite);
+                oldSprite.material.map && oldSprite.material.map.dispose();
+                oldSprite.material.dispose();
+            }
+
+            if (data.imageData) {
+                const img = new Image();
+                img.onload = function() {
+                    const texture = new THREE.Texture(img);
+                    texture.needsUpdate = true;
+
+                    const spriteMaterial = new THREE.SpriteMaterial({
+                        map: texture,
+                        transparent: true,
+                        opacity: 0.5,
+                        depthWrite: false,
+                    });
+                    const sprite = new THREE.Sprite(spriteMaterial);
+                    sprite.scale.set(0.25, 0.25, 1);
+                    sprite.position.set(0, -0.25, 0);
+                    heart.add(sprite);
+                };
+                img.src = data.imageData;
+            }
+
+            pulseHeart();
+        }
+
+        // ================================================================
+        // 5. ЭФФЕКТЫ
+        // ================================================================
+
+        function pulseHeart() {
+            const originalScale = 0.9;
+            const targetScale = 1.1;
+
+            let progress = 0;
+            const pulseUp = () => {
+                progress += 0.06;
+                if (progress >= 1) {
+                    let progressDown = 0;
+                    const pulseDown = () => {
+                        progressDown += 0.05;
+                        const scale = targetScale - (targetScale - originalScale) * Math.min(progressDown, 1);
+                        centralHeart.scale.set(scale, scale, scale);
+                        if (progressDown < 1) {
+                            requestAnimationFrame(pulseDown);
+                        }
+                    };
+                    pulseDown();
+                    return;
+                }
+                const scale = originalScale + (targetScale - originalScale) * progress;
+                centralHeart.scale.set(scale, scale, scale);
+                requestAnimationFrame(pulseUp);
+            };
+            pulseUp();
+        }
+
+        function createParticleExplosion(x, y, z, count = 30) {
+            const particleGeometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+            const velocities = [];
+
+            for (let i = 0; i < count; i++) {
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const speed = 0.05 + Math.random() * 0.12;
+
+                positions[i * 3] = x;
+                positions[i * 3 + 1] = y;
+                positions[i * 3 + 2] = z;
+
+                velocities.push({
+                    x: Math.sin(phi) * Math.cos(theta) * speed,
+                    y: Math.sin(phi) * Math.sin(theta) * speed,
+                    z: Math.cos(phi) * speed,
+                });
+
+                const color = new THREE.Color().setHSL(0.92 + Math.random() * 0.1, 0.9, 0.6 + Math.random() * 0.3);
+                colors[i * 3] = color.r;
+                colors[i * 3 + 1] = color.g;
+                colors[i * 3 + 2] = color.b;
+            }
+
+            particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const particleMaterial = new THREE.PointsMaterial({
+                size: 0.05,
+                vertexColors: true,
+                transparent: true,
+                opacity: 1,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+            });
+
+            const particles = new THREE.Points(particleGeometry, particleMaterial);
+            scene.add(particles);
+
+            let life = 1;
+            const animateExplosion = () => {
+                life -= 0.015;
+                if (life <= 0) {
+                    scene.remove(particles);
+                    particleGeometry.dispose();
+                    particleMaterial.dispose();
+                    return;
+                }
+
+                const pos = particles.geometry.attributes.position.array;
+                for (let i = 0; i < count; i++) {
+                    pos[i * 3] += velocities[i].x;
+                    pos[i * 3 + 1] += velocities[i].y;
+                    pos[i * 3 + 2] += velocities[i].z;
+                    velocities[i].x *= 0.98;
+                    velocities[i].y *= 0.98;
+                    velocities[i].z *= 0.98;
+                }
+                particles.geometry.attributes.position.needsUpdate = true;
+                particles.material.opacity = life;
+                particles.scale.set(1 + (1 - life) * 0.5, 1 + (1 - life) * 0.5, 1);
+
+                requestAnimationFrame(animateExplosion);
+            };
+            animateExplosion();
+        }
+
+        // ================================================================
+        // 6. ЗВЁЗДЫ
+        // ================================================================
+        const starsGeometry = new THREE.BufferGeometry();
+        const starsCount = 1000;
+        const starPositions = new Float32Array(starsCount * 3);
+        const starColors = new Float32Array(starsCount * 3);
+
+        for (let i = 0; i < starsCount; i++) {
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            const r = 15 + Math.random() * 20;
+
+            starPositions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+            starPositions[i * 3 + 1] = r * Math.cos(phi);
+            starPositions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
+
+            const color = new THREE.Color().setHSL(0.8 + Math.random() * 0.2, 0.8, 0.5 + Math.random() * 0.5);
+            starColors[i * 3] = color.r;
+            starColors[i * 3 + 1] = color.g;
+            starColors[i * 3 + 2] = color.b;
+        }
+
+        starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        starsGeometry.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+
+        const starsMaterial = new THREE.PointsMaterial({
+            size: 0.08,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+        });
+
+        const stars = new THREE.Points(starsGeometry, starsMaterial);
+        scene.add(stars);
+
+        // ================================================================
+        // 7. МОДАЛЬНЫЕ ОКНА
+        // ================================================================
+
+        // === МОДАЛКА СОЗДАНИЯ ===
+        const modal = document.getElementById('memory-modal');
+        const createBtn = document.getElementById('create-btn');
+        const cancelBtn = document.getElementById('modal-cancel');
+        const saveBtn = document.getElementById('modal-save');
+        const dateInput = document.getElementById('memory-date');
+        const titleInput = document.getElementById('memory-title');
+        const photoInput = document.getElementById('memory-photo');
+        const previewImg = document.getElementById('preview-image');
+
+        dateInput.value = new Date().toISOString().split('T')[0];
+
+        photoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImg.src = e.target.result;
+                    previewImg.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                previewImg.style.display = 'none';
+            }
+        });
+
+        function openModal() {
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+            photoInput.value = '';
+            previewImg.style.display = 'none';
+            titleInput.value = '';
+            dateInput.value = new Date().toISOString().split('T')[0];
+        }
+
+        createBtn.addEventListener('click', openModal);
+        cancelBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        saveBtn.addEventListener('click', () => {
+            const date = dateInput.value;
+            const title = titleInput.value || '💕';
+            const file = photoInput.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    addMemory(date, title, e.target.result);
+                    closeModal();
+                };
+                reader.readAsDataURL(file);
+            } else {
+                addMemory(date, title, null);
+                closeModal();
+            }
+        });
+
+        // === ОКНО ПРОСМОТРА + РЕДАКТИРОВАНИЯ ===
+        const viewModal = document.getElementById('view-modal');
+        const viewTitle = document.getElementById('view-title');
+        const viewDate = document.getElementById('view-date');
+        const viewDateInput = document.getElementById('view-date-input');
+        const viewText = document.getElementById('view-text');
+        const viewTextInput = document.getElementById('view-text-input');
+        const viewImage = document.getElementById('view-image');
+        const viewPhotoInput = document.getElementById('view-photo-input');
+        const viewClose = document.getElementById('view-close');
+        const viewEdit = document.getElementById('view-edit');
+        const viewSave = document.getElementById('view-save');
+        const viewCancel = document.getElementById('view-cancel');
+        const viewDelete = document.getElementById('view-delete');
+
+        let tempImageData = null;
+
+        function openViewModal(id) {
+            const heart = memories.find(h => h.userData.id === id);
+            if (!heart) return;
+
+            const data = heart.userData.memoryData;
+            currentViewId = id;
+            isEditMode = false;
+            tempImageData = null;
+
+            // Заполняем данные
+            viewDate.textContent = data.date || 'Без даты';
+            viewDateInput.value = data.date || new Date().toISOString().split('T')[0];
+            viewText.textContent = data.title || '💕';
+            viewTextInput.value = data.title || '';
+
+            if (data.imageData) {
+                viewImage.src = data.imageData;
+                viewImage.classList.add('active');
+            } else {
+                viewImage.classList.remove('active');
+            }
+
+            // Переключаем режим просмотра
+            setViewMode();
+
+            viewModal.classList.add('active');
+        }
+
+        function setViewMode() {
+            // Режим просмотра
+            viewDate.style.display = 'block';
+            viewDateInput.classList.remove('active');
+            viewText.style.display = 'block';
+            viewTextInput.classList.remove('active');
+            viewImage.classList.add('active');
+            viewPhotoInput.classList.remove('active');
+            
+            viewEdit.style.display = 'flex';
+            viewSave.classList.remove('active');
+            viewCancel.classList.remove('active');
+            viewDelete.style.display = 'flex';
+            
+            viewTitle.textContent = '💕 Воспоминание';
+        }
+
+        function setEditMode() {
+            isEditMode = true;
+            
+            // Режим редактирования
+            viewDate.style.display = 'none';
+            viewDateInput.classList.add('active');
+            viewText.style.display = 'none';
+            viewTextInput.classList.add('active');
+            viewPhotoInput.classList.add('active');
+            
+            viewEdit.style.display = 'none';
+            viewSave.classList.add('active');
+            viewCancel.classList.add('active');
+            viewDelete.style.display = 'none';
+            
+            viewTitle.textContent = '✏️ Редактирование';
+        }
+
+        function closeViewModal() {
+            viewModal.classList.remove('active');
+            currentViewId = null;
+            isEditMode = false;
+            tempImageData = null;
+            viewPhotoInput.value = '';
+            setViewMode();
+        }
+
+        viewClose.addEventListener('click', closeViewModal);
+        viewModal.addEventListener('click', (e) => {
+            if (e.target === viewModal) closeViewModal();
+        });
+
+        // === КНОПКА РЕДАКТИРОВАНИЯ ===
+        viewEdit.addEventListener('click', () => {
+            if (!currentViewId) return;
+            setEditMode();
+        });
+
+        // === КНОПКА ОТМЕНЫ ===
+        viewCancel.addEventListener('click', () => {
+            if (!currentViewId) return;
+            // Возвращаем данные без сохранения
+            const heart = memories.find(h => h.userData.id === currentViewId);
+            if (heart) {
+                const data = heart.userData.memoryData;
+                viewDateInput.value = data.date || new Date().toISOString().split('T')[0];
+                viewTextInput.value = data.title || '';
+                if (data.imageData) {
+                    viewImage.src = data.imageData;
+                    viewImage.classList.add('active');
+                } else {
+                    viewImage.classList.remove('active');
+                }
+                viewPhotoInput.value = '';
+                tempImageData = null;
+            }
+            setViewMode();
+        });
+
+        // === КНОПКА СОХРАНЕНИЯ ===
+        viewSave.addEventListener('click', () => {
+            if (!currentViewId) return;
+
+            const date = viewDateInput.value;
+            const title = viewTextInput.value || '💕';
+            const file = viewPhotoInput.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    editMemory(currentViewId, title, date, e.target.result);
+                    // Обновляем отображение
+                    const heart = memories.find(h => h.userData.id === currentViewId);
+                    if (heart) {
+                        const data = heart.userData.memoryData;
+                        viewDate.textContent = data.date || 'Без даты';
+                        viewText.textContent = data.title || '💕';
+                        if (data.imageData) {
+                            viewImage.src = data.imageData;
+                            viewImage.classList.add('active');
+                        }
+                    }
+                    setViewMode();
+                };
+                reader.readAsDataURL(file);
+            } else {
+                editMemory(currentViewId, title, date, null);
+                // Обновляем отображение
+                const heart = memories.find(h => h.userData.id === currentViewId);
+                if (heart) {
+                    const data = heart.userData.memoryData;
+                    viewDate.textContent = data.date || 'Без даты';
+                    viewText.textContent = data.title || '💕';
+                    if (data.imageData) {
+                        viewImage.src = data.imageData;
+                        viewImage.classList.add('active');
+                    }
+                }
+                setViewMode();
+            }
+        });
+
+        // === КНОПКА УДАЛЕНИЯ ===
+        viewDelete.addEventListener('click', () => {
+            if (!currentViewId) return;
+
+            if (confirm('🗑️ Точно удалить это воспоминание?')) {
+                deleteMemory(currentViewId);
+                closeViewModal();
+            }
+        });
+
+        // === ПРЕВЬЮ ФОТО ПРИ РЕДАКТИРОВАНИИ ===
+        viewPhotoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    viewImage.src = e.target.result;
+                    viewImage.classList.add('active');
+                    tempImageData = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // ================================================================
+        // 8. КЛИК ПО СЕРДЕЧКАМ
+        // ================================================================
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2();
+
+        function handleClick(clientX, clientY) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+            pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(pointer, camera);
+            const targets = memories;
+            const intersects = raycaster.intersectObjects(targets);
+
+            if (intersects.length > 0) {
+                const heart = intersects[0].object;
+                if (heart.userData && heart.userData.isMemory) {
+                    const id = heart.userData.id;
+                    if (id) {
+                        openViewModal(id);
+                    }
+                }
+            }
+        }
+
+        renderer.domElement.addEventListener('click', (e) => {
+            handleClick(e.clientX, e.clientY);
+        });
+
+        renderer.domElement.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            if (touch) {
+                handleClick(touch.clientX, touch.clientY);
+            }
+        }, { passive: true });
+
+        // ================================================================
+        // 9. ДЕМО-ВОСПОМИНАНИЯ
+        // ================================================================
+        setTimeout(() => {
+            const demos = [
+                { date: '2024-01-14', title: '💕 Наша первая встреча' },
+                { date: '2024-02-14', title: '✨ День всех влюблённых' },
+                { date: '2024-03-08', title: '🌸 8 Марта — ты моя весна' },
+            ];
+
+            demos.forEach((demo, i) => {
+                setTimeout(() => {
+                    addMemory(demo.date, demo.title, null);
+                }, i * 500 + 300);
+            });
+        }, 500);
+
+        // ================================================================
+        // 10. АНИМАЦИЯ
+        // ================================================================
+        let time = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            time += 0.01;
+
+            const pulse = 1 + Math.sin(time * 1.5) * 0.03;
+            centralHeart.scale.x = 0.9 * pulse;
+            centralHeart.scale.y = 0.9 * pulse;
+            centralHeart.scale.z = 0.9 * pulse;
+
+            centralHeart.rotation.y += 0.008;
+            centralHeart.rotation.x = Math.sin(time * 0.3) * 0.05;
+
+            const orbitSpeed = 0.3;
+
+            memories.forEach(heart => {
+                if (heart.userData) {
+                    heart.userData.angle += orbitSpeed * 0.01;
+
+                    const angle = heart.userData.angle;
+                    const radius = heart.userData.radius;
+                    heart.position.x = Math.cos(angle) * radius;
+                    heart.position.z = Math.sin(angle) * radius;
+
+                    const floatOffset = Math.sin(time * 0.5 + heart.userData.angle) * 0.03;
+                    heart.position.y = heart.userData.yOffset + floatOffset;
+
+                    heart.rotation.x += heart.userData.rotationSpeedX || 0.01;
+                    heart.rotation.y += heart.userData.rotationSpeedY || 0.01;
+                    heart.rotation.z += heart.userData.rotationSpeedZ || 0.01;
+                }
+            });
+
+            stars.rotation.y += 0.0005;
+            stars.rotation.x = Math.sin(time * 0.1) * 0.02;
+
+            controls.update();
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+
+        animate();
+
+        // ================================================================
+        // 11. РЕСАЙЗ
+        // ================================================================
+        window.addEventListener('resize', () => {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(width, height);
+            labelRenderer.setSize(width, height);
+        });
+
+        // ================================================================
+        // 12. КОНСОЛЬ
+        // ================================================================
+        window.addMemory = addMemory;
+        window.deleteMemory = deleteMemory;
+        window.editMemory = editMemory;
+
+        console.log('💫 Вселенная Воспоминаний запущена!');
+        console.log('💕 Сердце в центре — ядро вселенной');
+        console.log('🌀 Сердечки летают по орбитам');
+        console.log('📱 Нажми + чтобы добавить воспоминание');
+        console.log('🖱️ Кликни по сердечку — откроется окно');
+        console.log('✏️ Нажми "Редактировать" — текст станет editable прямо в окне!');
+        console.log('💾 Нажми "Сохранить" — обновится');
+        console.log('🔍 Мощный зум');
+    </script>
+</body>
+</html>
