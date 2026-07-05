@@ -78,5 +78,11 @@ def handle_disconnect():
     print(f'❌ Клиент отключился: {request.sid}')
 
 if __name__ == '__main__':
-    print('🚀 Сервер запущен на порту 5000')
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    print('🚀 Сервер запущен на порту 443 (HTTPS) и 80 (HTTP)')
+    socketio.run(
+        app,
+        host='0.0.0.0',
+        port=443,
+        debug=True,
+        ssl_context='adhoc'  # Автоматический HTTPS-сертификат
+    )
